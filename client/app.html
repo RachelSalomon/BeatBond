@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BeatBond - App</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="app-page">
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <h1 class="logo">BeatBond</h1>
+          <p class="topbar-subtitle">Your social music platform</p>
+        </div>
+
+        <div class="topbar-right">
+          <p id="status" class="status-text">Checking login...</p>
+          <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+      </header>
+
+      <main class="dashboard-grid">
+        <section class="card">
+          <h2>Create Playlist</h2>
+
+          <input type="text" id="playlistTitle" placeholder="Playlist title" />
+          <input
+            type="text"
+            id="playlistDescription"
+            placeholder="Playlist description"
+          />
+
+          <label class="checkbox-row">
+            <input type="checkbox" id="playlistIsPublic" checked />
+            <span>Public playlist</span>
+          </label>
+
+          <button onclick="createPlaylist()">Create Playlist</button>
+        </section>
+
+        <section class="card">
+          <div class="section-header">
+            <h2>My Social Data</h2>
+            <button onclick="loadSocialData()">Load My Social Data</button>
+          </div>
+
+          <div class="two-columns">
+            <div>
+              <h3>Following</h3>
+              <ul id="followingList" class="data-list"></ul>
+            </div>
+
+            <div>
+              <h3>Followers</h3>
+              <ul id="followersList" class="data-list"></ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="section-header">
+            <h2>My Playlists</h2>
+            <button onclick="getMyPlaylists()">Load My Playlists</button>
+          </div>
+
+          <ul id="playlistList" class="playlist-list"></ul>
+        </section>
+
+        <section class="card">
+          <div class="section-header">
+            <h2>Discover Public Playlists</h2>
+            <button onclick="loadDiscover()">Load Discover</button>
+          </div>
+
+          <ul id="discoverList" class="playlist-list"></ul>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      let currentUserId = null;
+
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        window.location.href = "index.html";
+      }
+
+      const updateStatus = () => {
+        const token = localStorage.getItem("token");
+
+        if (token) {
+          document.getElementById("status").innerText = "You are logged in";
+        } else {
+          document.getElementById("status").innerText = "Not logged in";
+        }
+      };
+
+      updateStatus();
+
+      const logout = () => {
+        localStorage.removeItem("token");
+        currentUserId = null;
+        window.location.href = "index.html";
+      };
+
+      const createPlaylist = async () => {
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+          alert("Please login first");
+          return;
+        }
+
+        const title = document.getElementById("playlistTitle").value;
+        const description = document.getElementById(
+          "playlistDescription",
+        ).value;
+        const isPublic = document.getElementById("playlistIsPublic").checked;
+
+        const res = await fetch("http://localhost:5000/api/playlists", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token,
+          },
+          body: JSON.stringify({
+            title,
+            description,
+            isPublic,
+          }),
+        });
+
+        await res.json();
+        getMyPlaylists();
+      };
+
+      const getMyPlaylists = async () => {
+        const token = localStorage.getItem("token");
+
+        const res = await fetch("http://localhost:5000/api/playlists/my", {
+          method: "GET",
+          headers: {
+            Authorization: token,
+          },
+        });
+
+        const data = await res.json();
+
+        const list = document.getElementById("playlistList");
+        list.innerHTML = "";
+
+        data.playlists.forEach((playlist) => {
+          const li = document.createElement("li");
+          li.className = "playlist-card-item";
+
+          const title = document.createElement("strong");
+          title.className = "playlist-title";
+          title.innerText = `${playlist.title} ${
+            playlist.isPublic ? "(Public)" : "(Private)"
+          }`;
+          li.appendChild(title);
+
+          if (playlist.description) {
+            const desc = document.createElement("div");
+            desc.className = "playlist-description";
+            desc.innerText = playlist.description;
+            li.appendChild(desc);
+          }
+
+          const actions = document.createElement("div");
+          actions.className = "action-row";
+
+          const addSongBtn = document.createElement("button");
+          addSongBtn.innerText = "Add Song";
+
+          addSongBtn.onclick = () => {
+            const song = prompt("Enter song name:");
+
+            if (!song) return;
+
+            addSongToPlaylist(playlist._id, song);
+          };
+
+          actions.appendChild(addSongBtn);
+
+          const deletePlaylistBtn = document.createElement("button");
+          deletePlaylistBtn.innerText = "Delete Playlist";
+
+          deletePlaylistBtn.onclick = () => {
+            deletePlaylist(playlist._id);
+          };
+
+          actions.appendChild(deletePlaylistBtn);
+          li.appendChild(actions);
+
+          const songsTitle = document.createElement("div");
+          songsTitle.className = "songs-title";
+          songsTitle.innerText = "Songs";
+          li.appendChild(songsTitle);
+
+          if (playlist.songs.length === 0) {
+            const noSongs = document.createElement("div");
+            noSongs.className = "empty-text";
+            noSongs.innerText = "No songs yet";
+            li.appendChild(noSongs);
+          } else {
+            playlist.songs.forEach((song) => {
+              const songItem = document.createElement("div");
+              songItem.className = "song-row";
+
+              const songName = document.createElement("span");
+              songName.innerText = song;
+              songItem.appendChild(songName);
+
+              const deleteSongBtn = document.createElement("button");
+              deleteSongBtn.innerText = "Delete Song";
+
+              deleteSongBtn.onclick = () => {
+                removeSongFromPlaylist(playlist._id, song);
+              };
+
+              songItem.appendChild(deleteSongBtn);
+              li.appendChild(songItem);
+            });
+          }
+
+          list.appendChild(li);
+        });
+      };
+
+      const addSongToPlaylist = async (playlistId, song) => {
+        const token = localStorage.getItem("token");
+
+        const res = await fetch(
+          `http://localhost:5000/api/playlists/${playlistId}/songs`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: token,
+            },
+            body: JSON.stringify({
+              song,
+            }),
+          },
+        );
+
+        await res.json();
+        getMyPlaylists();
+      };
+
+      const removeSongFromPlaylist = async (playlistId, song) => {
+        const token = localStorage.getItem("token");
+
+        const res = await fetch(
+          `http://localhost:5000/api/playlists/${playlistId}/songs`,
+          {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: token,
+            },
+            body: JSON.stringify({
+              song,
+            }),
+          },
+        );
+
+        await res.json();
+        getMyPlaylists();
+      };
+
+      const deletePlaylist = async (playlistId) => {
+        const token = localStorage.getItem("token");
+
+        const res = await fetch(
+          `http://localhost:5000/api/playlists/${playlistId}`,
+          {
+            method: "DELETE",
+            headers: {
+              Authorization: token,
+            },
+          },
+        );
+
+        await res.json();
+        getMyPlaylists();
+      };
+
+      const loadSocialData = async () => {
+        const token = localStorage.getItem("token");
+
+        const res = await fetch("http://localhost:5000/api/auth/me/social", {
+          method: "GET",
+          headers: {
+            Authorization: token,
+          },
+        });
+
+        const data = await res.json();
+
+        currentUserId = data.userId;
+
+        const followingList = document.getElementById("followingList");
+        const followersList = document.getElementById("followersList");
+
+        followingList.innerHTML = "";
+        followersList.innerHTML = "";
+
+        data.following.forEach((user) => {
+          const li = document.createElement("li");
+          li.innerText = `${user.username} (${user.email})`;
+          followingList.appendChild(li);
+        });
+
+        data.followers.forEach((user) => {
+          const li = document.createElement("li");
+          li.innerText = `${user.username} (${user.email})`;
+          followersList.appendChild(li);
+        });
+      };
+
+      const followUser = async (userId) => {
+        const token = localStorage.getItem("token");
+
+        const res = await fetch(
+          `http://localhost:5000/api/auth/follow/${userId}`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: token,
+            },
+          },
+        );
+
+        await res.json();
+        loadSocialData();
+        loadDiscover();
+      };
+
+      const loadDiscover = async () => {
+        const res = await fetch("http://localhost:5000/api/playlists/discover");
+        const data = await res.json();
+
+        const list = document.getElementById("discoverList");
+        list.innerHTML = "";
+
+        data.playlists.forEach((playlist) => {
+          const li = document.createElement("li");
+          li.className = "playlist-card-item";
+
+          const title = document.createElement("strong");
+          title.className = "playlist-title";
+          title.innerText = playlist.title;
+          li.appendChild(title);
+
+          const owner = document.createElement("div");
+          owner.className = "playlist-owner";
+          owner.innerText = `By: ${playlist.user.username}`;
+          li.appendChild(owner);
+
+          if (playlist.description) {
+            const desc = document.createElement("div");
+            desc.className = "playlist-description";
+            desc.innerText = playlist.description;
+            li.appendChild(desc);
+          }
+
+          const songsTitle = document.createElement("div");
+          songsTitle.className = "songs-title";
+          songsTitle.innerText = "Songs";
+          li.appendChild(songsTitle);
+
+          if (playlist.songs.length === 0) {
+            const noSongs = document.createElement("div");
+            noSongs.className = "empty-text";
+            noSongs.innerText = "No songs yet";
+            li.appendChild(noSongs);
+          } else {
+            playlist.songs.forEach((song) => {
+              const songItem = document.createElement("div");
+              songItem.className = "song-row";
+              songItem.innerText = song;
+              li.appendChild(songItem);
+            });
+          }
+
+          if (currentUserId && playlist.user._id !== currentUserId) {
+            const followBtn = document.createElement("button");
+            followBtn.innerText = `Follow ${playlist.user.username}`;
+            followBtn.onclick = () => {
+              followUser(playlist.user._id);
+            };
+            followBtn.className = "follow-btn";
+            li.appendChild(followBtn);
+          }
+
+          list.appendChild(li);
+        });
+      };
+    </script>
+  </body>
+</html>
