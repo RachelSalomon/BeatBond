@@ -79,6 +79,8 @@
     </div>
 
     <script>
+      const API_BASE_URL = "https://beatbond-81f5.onrender.com";
+
       let currentUserId = null;
 
       const token = localStorage.getItem("token");
@@ -119,7 +121,7 @@
         ).value;
         const isPublic = document.getElementById("playlistIsPublic").checked;
 
-        const res = await fetch("http://localhost:5000/api/playlists", {
+        const res = await fetch(`${API_BASE_URL}/api/playlists`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -139,7 +141,7 @@
       const getMyPlaylists = async () => {
         const token = localStorage.getItem("token");
 
-        const res = await fetch("http://localhost:5000/api/playlists/my", {
+        const res = await fetch(`${API_BASE_URL}/api/playlists/my`, {
           method: "GET",
           headers: {
             Authorization: token,
@@ -177,9 +179,7 @@
 
           addSongBtn.onclick = () => {
             const song = prompt("Enter song name:");
-
             if (!song) return;
-
             addSongToPlaylist(playlist._id, song);
           };
 
@@ -234,16 +234,14 @@
         const token = localStorage.getItem("token");
 
         const res = await fetch(
-          `http://localhost:5000/api/playlists/${playlistId}/songs`,
+          `${API_BASE_URL}/api/playlists/${playlistId}/songs`,
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: token,
             },
-            body: JSON.stringify({
-              song,
-            }),
+            body: JSON.stringify({ song }),
           },
         );
 
@@ -255,16 +253,14 @@
         const token = localStorage.getItem("token");
 
         const res = await fetch(
-          `http://localhost:5000/api/playlists/${playlistId}/songs`,
+          `${API_BASE_URL}/api/playlists/${playlistId}/songs`,
           {
             method: "DELETE",
             headers: {
               "Content-Type": "application/json",
               Authorization: token,
             },
-            body: JSON.stringify({
-              song,
-            }),
+            body: JSON.stringify({ song }),
           },
         );
 
@@ -275,15 +271,12 @@
       const deletePlaylist = async (playlistId) => {
         const token = localStorage.getItem("token");
 
-        const res = await fetch(
-          `http://localhost:5000/api/playlists/${playlistId}`,
-          {
-            method: "DELETE",
-            headers: {
-              Authorization: token,
-            },
+        const res = await fetch(`${API_BASE_URL}/api/playlists/${playlistId}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: token,
           },
-        );
+        });
 
         await res.json();
         getMyPlaylists();
@@ -292,7 +285,7 @@
       const loadSocialData = async () => {
         const token = localStorage.getItem("token");
 
-        const res = await fetch("http://localhost:5000/api/auth/me/social", {
+        const res = await fetch(`${API_BASE_URL}/api/auth/me/social`, {
           method: "GET",
           headers: {
             Authorization: token,
@@ -325,15 +318,12 @@
       const followUser = async (userId) => {
         const token = localStorage.getItem("token");
 
-        const res = await fetch(
-          `http://localhost:5000/api/auth/follow/${userId}`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: token,
-            },
+        const res = await fetch(`${API_BASE_URL}/api/auth/follow/${userId}`, {
+          method: "POST",
+          headers: {
+            Authorization: token,
           },
-        );
+        });
 
         await res.json();
         loadSocialData();
@@ -341,7 +331,7 @@
       };
 
       const loadDiscover = async () => {
-        const res = await fetch("http://localhost:5000/api/playlists/discover");
+        const res = await fetch(`${API_BASE_URL}/api/playlists/discover`);
         const data = await res.json();
 
         const list = document.getElementById("discoverList");
