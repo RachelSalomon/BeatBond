@@ -86,6 +86,7 @@
       const API_BASE_URL = "https://beatbond-81f5.onrender.com";
 
       let currentUserId = null;
+      let currentUsername = "";
       let followingUserIds = new Set();
       let openSongFormPlaylistId = null;
 
@@ -111,7 +112,7 @@
         const token = localStorage.getItem("token");
 
         if (token) {
-          document.getElementById("status").innerText = "You are logged in";
+          document.getElementById("status").innerText = "Logged in";
         } else {
           document.getElementById("status").innerText = "Not logged in";
         }
@@ -122,6 +123,7 @@
       const logout = () => {
         localStorage.removeItem("token");
         currentUserId = null;
+        currentUsername = "";
         followingUserIds = new Set();
         window.location.href = "index.html";
       };
@@ -177,6 +179,7 @@
 
           showAppMessage("Playlist created successfully", "success");
           getMyPlaylists();
+          loadDiscover();
         } catch (error) {
           showAppMessage("Server error. Please try again later.", "error");
         }
@@ -353,6 +356,7 @@
           openSongFormPlaylistId = null;
           showAppMessage("Song added successfully", "success");
           getMyPlaylists();
+          loadDiscover();
         } catch (error) {
           showAppMessage("Could not add song", "error");
         }
@@ -385,6 +389,7 @@
 
           showAppMessage("Song removed successfully", "success");
           getMyPlaylists();
+          loadDiscover();
         } catch (error) {
           showAppMessage("Could not delete song", "error");
         }
@@ -418,6 +423,7 @@
 
           showAppMessage("Playlist deleted successfully", "success");
           getMyPlaylists();
+          loadDiscover();
         } catch (error) {
           showAppMessage("Could not delete playlist", "error");
         }
@@ -437,7 +443,10 @@
           const data = await res.json();
 
           currentUserId = data.userId;
+          currentUsername = data.username;
           followingUserIds = new Set(data.following.map((user) => user._id));
+
+          document.getElementById("status").innerText = data.username;
 
           const followingList = document.getElementById("followingList");
           const followersList = document.getElementById("followersList");
@@ -538,7 +547,13 @@
 
             const owner = document.createElement("div");
             owner.className = "playlist-owner";
-            owner.innerText = `By: ${playlist.user.username}`;
+
+            if (playlist.user._id === currentUserId) {
+              owner.innerText = `By: ${playlist.user.username} (You)`;
+            } else {
+              owner.innerText = `By: ${playlist.user.username}`;
+            }
+
             li.appendChild(owner);
 
             if (playlist.description) {
