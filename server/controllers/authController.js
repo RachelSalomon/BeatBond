@@ -26,8 +26,13 @@ const register = async (req, res) => {
 
     await newUser.save();
 
+    const token = jwt.sign({ userId: newUser._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+
     res.status(201).json({
-      message: "User registered successfully",
+      message: "Registration successful. You are now logged in.",
+      token,
     });
   } catch (error) {
     res.status(500).json({
